@@ -1,0 +1,324 @@
+.start Begin
+;initializing several Turing machine variables
+Head: .Integer #0
+NewLine: .Integer #10
+State: .Integer #0
+Tape: .String "_XX.YYY+" 
+tapeDataSize: .Integer #8 ;size of array
+
+;rules in format (current state, input character, new state, output character, direction)
+rules: .tuple \0 _ 0 _ r\
+.tuple \0 X 0 A r\
+.tuple \0 . 0 . r\
+.tuple \0 Y 0 B r\
+.tuple \0 + 1 + l\ 
+.tuple \1 B 1 D l\ 
+.tuple \1 . 1 . l\ 
+.tuple \1 A 1 C l\ 
+numTuples: .Integer #8 ;have to set this based on above ^
+
+;strings used for printing 
+introMess: .String "Welcome to Turing!"
+tupleMess: .String "Tuples: "
+stateMess: .String "Initial State: "
+headMess: .String "Initial Tape Head: "
+tapeMess: .String "Initial Tape: "
+space: .string " "
+leftBracket: .String "["
+rightBracket: .String "]"
+endProgramMess: .String "Turing run complete"
+finalTapeMess: .String "Final Tape: "
+numStepsMess: .String "That took "
+numStepsMess2: .String " steps"
+
+;r1 = length of tape
+;r2 = location of tapeData (start of characters)
+
+;;;;Sets values and prints the tape in characters as a test
+Begin: movmr NewLine r0
+movmr Tape r2
+movrm r2 tapeDataSize ;first location is size
+movrr r2 r1 ;Movrr or xr?
+movar Tape r2
+addir #1 r2 ;characters come after size in String
+;jsr printTapeArray ;test func
+
+;;;;Prints Introduction Messages
+Run: movmr Head r8
+movmr State r7
+movmr Tape r9
+outs introMess
+outcr r0
+outcr r0
+outs tupleMess
+movar rules r2
+jsr printTuples ;messes up r2
+outcr r0
+outs stateMess
+printi r7
+outcr r0
+outs headMess
+printi r8
+outcr r0
+outs tapeMess
+outs Tape
+outcr r0
+outcr r0
+
+;;;;Runs the Turing program
+movmr Head r4
+movmr NewLine r6
+movir #0 r8 ;num steps counter
+
+doTuringProgram: movar Tape r2
+addir #1 r2 
+movmr tapeDataSize r1
+jsr printTrace
+;;;;^^ prints current tape and tuple with indication of head position and input char
+
+movar Tape r2
+addir #1 r2 
+movmr tapeDataSize r1 
+jsr getInputChar ;puts input char in r0
+movrr r0 r5 ;for full tuple (before input char)
+movmr State r3
+movrr r3 r7 ;for full tuple (before state)
+movar rules r2
+
+jsr findTuple ;puts output char in r0, newState in r3, direction into r1, Flag in r4- 1 to continue 0 to stop
+
+;;;checks if a tuple was found
+cmpir #1 r4
+jmpne endTuringProgram
+addir #1 r8
+
+;;;prints out tuple used
+outs space
+printi r7
+outs space
+outcr r5
+outs space
+printi r3
+outs space
+outcr r0
+outs space
+printi r1
+;outs space
+;outcr r6
+
+;put returned values into non-jsr registers
+;;update state to new state
+movrr r3 r7 ;sets newState in r7
+movrm r3 State ;sets newState in label State
+movrr r1 r9 ;puts direction into r9 
+
+;;;;modify tape at head location (pass in output character in r0-- change it to that)
+movmr Head r4
+movar Tape r2
+addir #1 r2
+jsr editTape
+outcr r6
+
+;;;;move tape head left or right (-1 or 1)
+movmr Head r4
+addrr r9 r4
+movrm r4 Head
+jmp doTuringProgram
+
+endTuringProgram: outcr r6
+outs endProgramMess
+outcr r6
+outs finalTapeMess
+outs Tape
+outcr r6
+outs numStepsMess
+printi r8
+outs numStepsMess2
+outcr r6
+outcr r6
+
+haltturing: halt
+.end
+
+
+;;;;edit tape subroutine
+;pass in head location in r4, output char in r0, tape mem loc in r2
+;change character at head location in tape accordingly
+;vars
+;  r8 count - location in tape
+;  r6 char at loc
+editTape: movir #0 r8
+doet: cmprr r4 r8
+jmpne dwet
+movrx r0 r2
+jmp endEditTape
+dwet: addir #1 r8
+addir #1 r2
+jmp doet
+endEditTape: ret
+
+
+;;;;getInputChar subroutine, gets character in tape at the head loc.
+;inputs:
+;  tape index in r2
+;  head in r4
+;  tapeData size in r1
+;outputs:
+;  returns input character in r0
+;note: counter for spot in tape is r9
+getInputChar: movir #0 r9
+doic: cmpir #0 r1
+jmpz endPrintTrace
+cmprr r4 r9
+jmpne add
+movxr r2 r3
+movrr r3 r0
+jmp endPrintTrace
+add: addir #1 r2
+addir #1 r9
+subir #1 r1
+jmp doic
+endPrintTrace: ret
+
+
+;;;;printTuples subroutine, prints each tuple in its own line.
+;inputs:
+;  tuples start location in r2
+;vars:
+;r8 holds counter for spot in each tuple
+;r9 holds counter for number of tuples gone through
+;r3 contains character tuple.
+printTuples: outcr r0
+movir #0 r8 
+movir #0 r9 
+
+dwPrintTupleX: cmpir #5 r8
+jmpne printTupleX
+outcr r0
+addir #1 r9
+movir #0 r8
+cmpmr numTuples r9
+jmpne dwPrintTupleX
+jmp endPrintTuplesX
+
+printTupleX: movxr r2 r3
+cmpir #4 r8
+jmpne dwptX
+printi r3
+outs space
+jmp ewptX
+dwptX: cmpir #0 r8
+jmpz intX
+cmpir #2 r8
+jmpne charX
+intX: printi r3
+outs space
+jmp ewptX
+charX: outcr r3
+outs space
+
+ewptX: addir #1 r2
+addir #1 r8
+jmp dwPrintTupleX
+endPrintTuplesX: ret ;clrr r3
+;ret
+
+
+;;;;printTapeArray subroutine
+;goes through tape and prints each individual char
+;inputs:
+;  r1 size of array
+;  r2 address of start of array
+printTapeArrayMess: .String "Tape Chars: "
+;as this method executes r1 shrinks to 0 and r2 advances through the array.
+printTapeArray: outs printTapeArrayMess
+outcr r0
+dwPrintTapeArray: cmpir #0 r1
+jmpz endPrintTapeArray
+movxr r2 r3
+outcr r3
+outcr r0
+addir #1 r2 
+subir #1 r1
+jmp dwPrintTapeArray
+endPrintTapeArray: clrr r3
+ret
+
+
+
+;;;;printTrace subroutine 
+;prints the current tape with [ ] around the char where the head is.
+;head location in r4
+;inputs
+;  length of tape in r1
+;  start of tape in r2
+;vars
+;  r8 is counter through tape 
+printTrace: movir #0 r8
+runPrintTrace: cmpir #0 r1
+jmpz endPrintTrace
+movxr r2 r3
+cmprr r4 r8
+jmpne noBracket
+outs leftBracket
+outcr r3
+outs rightBracket
+jmp dwPTrace
+noBracket: outcr r3
+dwPTrace: addir #1 r2
+addir #1 r8
+subir #1 r1
+jmp runPrintTrace
+endPrintTrace: ret
+
+
+;;;;findTuple subroutine
+;finds the tuple needed based on current state and input char
+;inputs:
+;  state in r3
+;  input char in r0
+;  tuple start location in r2
+;outputs:
+;  new state r3
+;  output character r0
+;  direction r1
+;  end flag in r4 (0 if end, 1 if not)
+;vars:
+;r8 holds counter for spot in each tuple
+;r9 holds counter for number of tuples gone through
+;r7 contains character tuple.
+findTuple: clrr r1
+movir #0 r9
+movir #1 r4
+dwFindTuple: cmpmr numTuples r9
+jmpne doFindTuple
+movir #0 r4 ;end program flag
+jmp endFindTuple
+
+doFindTuple: movxr r2 r7
+cmprr r7 r3 ;check state
+jmpne ewft
+addir #1 r2 
+movxr r2 r7 
+cmprr r0 r7 ;check input char
+jmpne ewft2
+
+addir #1 r2  
+movxr r2 r3 ;ns
+addir #1 r2 
+movxr r2 r0 ;oc
+addir #1 r2 
+movxr r2 r1 ;di
+movir #1 r4 ;do not end flag
+jmp endFindTuple
+
+
+ewft2: addir #4 r2
+jmp updateft
+ewft: addir #5 r2
+updateft: addir #1 r9
+jmp dwFindTuple
+endFindTuple: ret 
+
+
+

@@ -1,12 +1,19 @@
-//
-//  main.swift
-//  SAP
-//
-//  Created by Ella Fontenot on 3/22/19.
-//  Copyright © 2019 Ella Fontenot. All rights reserved.
-//
-
 import Foundation
+let ellaPath = "/Users/ella/Desktop/sapProject/"
+let izzyPath = "/Users/ishaw/Desktop/sapProject/"
 
-print("Hello, World!")
+func testSapVM(){
+    let dvm : sapVM = sapVM(filePath: ellaPath, programName: "turing") //movxrTest
+    dvm.run()
+}
+testSapVM()
 
+//func testAssm(){
+//    var projectName = "turing"
+//    var assembler = Assembler(path: ellaPath + projectName + ".txt")
+//    assembler.splitChunks()
+//    print(assembler.programChunks)
+//    assembler.tokenize()
+//    print(assembler.tokens)
+//}
+//testAssm()
